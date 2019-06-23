@@ -14,7 +14,7 @@ w.generate_height(scale=400.0, rand=True)
 init_map = np.copy(w.height_map)
 w.mayavi_plot(new_fig=True)
 
-a_cloud = water.RainCloud(w, 1000)
+a_cloud = water.RainCloud(w, 10000)
 # TODO find bug where raindrop goes out of bounds
 rain_drops = a_cloud.make_it_rain()
 # test_drop = water.WaterDroplet(w)
