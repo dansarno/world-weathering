@@ -10,5 +10,5 @@ world-weathering uses Perlin noise to procedurally generate the worlds which are
 
 ## Erosion
 
-[picture](ReadmeContent/before.png)
-[picture](ReadmeContent/after.png)
+[beforepicture](ReadmeContent/before.png)
+[afterpicture](ReadmeContent/after.png)
