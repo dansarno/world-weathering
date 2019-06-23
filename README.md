@@ -6,4 +6,4 @@ Simulation of weathering on procedurally generated terrains
 
 world-weathering uses Perlin noise to procedurally generate the worlds which are 2-d heightmaps
 
-![Alt text](Readme Content\pre_erosion_snapshot.png?raw=true "World example")
+![alt text](https://github.com/dansarno/world-weathering/ReadmeContent/pre_erosion_snapshot.png)
