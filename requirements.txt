@@ -1,0 +1,8 @@
+numpy
+noise
+scipy
+pillow
+matplotlib
+mayavi
+PyQt4
+numba
