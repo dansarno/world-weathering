@@ -1,5 +1,5 @@
 *.pyc
 *.pckl
 scratch/*
-piuct_venv/*
+world_venv/*
 .idea
