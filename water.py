@@ -1,13 +1,12 @@
 import numpy as np
 from random import random
 import scipy.misc
-from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import earth
 from numba import jit
 
 
-class WaterDroplet(earth.World):
+class WaterDroplet:
     """
     Class docstring
     """
@@ -28,6 +27,7 @@ class WaterDroplet(earth.World):
         self.water = water
         self.material = material
         self.sediment_capacity = sediment_capacity
+        self.d_h = 0
 
     def __repr__(self):
         """Returns representation of the object e.g. WaterDroplet(43.535, 28.114)"""
@@ -69,26 +69,28 @@ class WaterDroplet(earth.World):
             new_height = init_height
         else:
             new_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, world)
-        return init_height - new_height
+
+        # Update the d_h attribute of the water droplet
+        self.d_h = init_height - new_height
 
     # @jit(nopython=True, parallel=True)
-    def erode(self, world, d_h):
+    def erode(self, world):
         init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, world)
         pos1, pos2, pos3, pos4 = WaterDroplet._find_nodes_and_offsets(self.x_pos, self.y_pos)[0:4]
         drop_pos = (self.x_pos, self.y_pos)
         coords = [pos1, pos2, pos3, pos4]
         for coord in coords:
             dist = WaterDroplet._dist(drop_pos, coord)
-            if not d_h < 0:
-                world.height_map[coord[0]][coord[1]] -= d_h * (dist / np.sqrt(2)) * self.water
+            if not self.d_h < 0:
+                world.height_map[coord[0]][coord[1]] -= self.d_h * (dist / np.sqrt(2)) * self.water
 
-    def erode2(self, world, d_h, radius=3.0):
+    def erode2(self, world, radius=3.0):
         drop_pos = (self.x_pos, self.y_pos)
-        if not d_h < 0:
+        if not self.d_h < 0:
             weightings_dict = WaterDroplet._get_nodes_and_weights_in_raduis(world.height_map, drop_pos, radius)
             for pos, weight in weightings_dict.items():
                 i, j = pos
-                world.height_map[i][j] -= d_h * weight * self.water
+                world.height_map[i][j] -= self.d_h * weight * self.water
 
     def evapourate(self):
         """Docstring"""
