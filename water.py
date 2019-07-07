@@ -47,12 +47,12 @@ class WaterDroplet:
         return WaterDroplet(self.world, x_dir=x, y_dir=y, water=d, material=m)
 
     # @jit(nopython=True)
-    def roll(self, world):
+    def roll(self):
         """
         Determines the drop's current height and 2d gradient and calculates the new drop position
         Returns:
         """
-        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, world)
+        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, self.world)
         # Update the droplet's direction and position (move position 1 unit regardless of speed)
         self.x_dir = (self.x_dir * self.INERTIA) - (x_grad * (1 - self.INERTIA))
         self.y_dir = (self.y_dir * self.INERTIA) - (y_grad * (1 - self.INERTIA))
@@ -68,29 +68,29 @@ class WaterDroplet:
         if self.x_pos < 1 or self.x_pos > self.world.lx - 2 or self.y_pos < 1 or self.y_pos > self.world.ly - 2:
             new_height = init_height
         else:
-            new_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, world)
+            new_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, self.world)
 
         # Update the d_h attribute of the water droplet
         self.d_h = init_height - new_height
 
     # @jit(nopython=True, parallel=True)
-    def erode(self, world):
-        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, world)
+    def erode(self):
+        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, self.world)
         pos1, pos2, pos3, pos4 = WaterDroplet._find_nodes_and_offsets(self.x_pos, self.y_pos)[0:4]
         drop_pos = (self.x_pos, self.y_pos)
         coords = [pos1, pos2, pos3, pos4]
         for coord in coords:
             dist = WaterDroplet._dist(drop_pos, coord)
             if not self.d_h < 0:
-                world.height_map[coord[0]][coord[1]] -= self.d_h * (dist / np.sqrt(2)) * self.water
+                self.world.height_map[coord[0]][coord[1]] -= self.d_h * (dist / np.sqrt(2)) * self.water
 
-    def erode2(self, world, radius=3.0):
+    def erode_radius(self, radius=3.0):
         drop_pos = (self.x_pos, self.y_pos)
         if not self.d_h < 0:
-            weightings_dict = WaterDroplet._get_nodes_and_weights_in_raduis(world.height_map, drop_pos, radius)
+            weightings_dict = WaterDroplet._get_nodes_and_weights_in_raduis(self.world.height_map, drop_pos, radius)
             for pos, weight in weightings_dict.items():
                 i, j = pos
-                world.height_map[i][j] -= self.d_h * weight * self.water
+                self.world.height_map[i][j] -= self.d_h * weight * self.water
 
     def evapourate(self):
         """Docstring"""
@@ -146,16 +146,10 @@ class WaterDroplet:
         se = (x2, y2)
         sw = (x1, y2)
         return nw, ne, se, sw, x_offset, y_offset
-        # return x1, y1, x2, y2, x_offset, y_offset
 
     @staticmethod
     def _get_nodes_and_weights_in_raduis(heightmap, drop_position, radius, funct='gauss'):
-        x, y = drop_position
-        # Define subsection of map to search (+radius to -radius square)
-        x_minus = np.ceil(x - radius) if np.ceil(x - radius) >= 0 else 0
-        x_plus = np.floor(x + radius) if np.floor(x + radius) <= np.shape(heightmap)[0] - 1 else np.shape(heightmap)[0]
-        y_minus = np.ceil(y - radius) if np.ceil(y - radius) >= 0 else 0
-        y_plus = np.floor(y + radius) if np.floor(y + radius) <= np.shape(heightmap)[1] - 1 else np.shape(heightmap)[1]
+        x_minus, x_plus, y_minus, y_plus = WaterDroplet._calc_local_space(heightmap, drop_position, radius)
         dict_position_and_weights = {}
         for i in range(int(x_minus), int(x_plus)):
             for j in range(int(y_minus), int(y_plus)):
@@ -166,6 +160,17 @@ class WaterDroplet:
                         weighting = WaterDroplet._gauss(drop_to_gridpoint, radius)
                         dict_position_and_weights[grid_point] = weighting
         return dict_position_and_weights
+
+    @staticmethod
+    @jit(nopython=True)
+    def _calc_local_space(heightmap, drop_position, radius):
+        x, y = drop_position
+        # Define subsection of map to search (+radius to -radius square)
+        x_minus = np.ceil(x - radius) if np.ceil(x - radius) >= 0 else 0
+        x_plus = np.floor(x + radius) if np.floor(x + radius) <= np.shape(heightmap)[0] - 1 else np.shape(heightmap)[0]
+        y_minus = np.ceil(y - radius) if np.ceil(y - radius) >= 0 else 0
+        y_plus = np.floor(y + radius) if np.floor(y + radius) <= np.shape(heightmap)[1] - 1 else np.shape(heightmap)[1]
+        return x_minus, x_plus, y_minus, y_plus
 
     @staticmethod
     @jit(nopython=True)
