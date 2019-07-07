@@ -10,7 +10,7 @@ iterations = 50
 width, height = 1000, 1000
 
 w = earth.World(width, height)
-w.generate_height(scale=400.0, rand=True)
+w.generate_height(scale=400.0, rand=False)
 init_map = np.copy(w.height_map)
 w.mayavi_plot(new_fig=True)
 
@@ -29,7 +29,7 @@ for d, drop in enumerate(rain_drops):
         d_h = drop.roll(w)
         if drop.x_pos < 1 or drop.x_pos > w.lx - 2 or drop.y_pos < 1 or drop.y_pos > w.ly - 2:
             break
-        drop.erode2(w, d_h)
+        drop.erode2(w, d_h, radius=10.0)
         # xdata.append(drop.x_pos)
         # ydata.append(drop.y_pos)
         # zdata.append(water.WaterDroplet.calc_height_and_grad(drop, w)[0]*40)
