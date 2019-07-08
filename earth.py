@@ -30,7 +30,6 @@ class World:
     def __len__(self):
         """Returns the length of the height map array i.e. total num of pixels"""
         return len(self.height_map)
-        pass
 
     def __getitem__(self, item):
         # TODO write some method which can allow for 2d array indexing i.e. world[i][j]
@@ -74,11 +73,16 @@ class World:
                                                       persistence=persistence,
                                                       lacunarity=lacunarity
                                                       )
+        # Normalisation - not sure if needed
+        self.height_map = (self.height_map - np.min(self.height_map))/np.ptp(self.height_map)
+
+    def add_hardness_map(self):
+        pass
 
     def show_map(self):
         """
 
-        Returns:
+        Returns: N/A
 
         """
         plt.figure()
@@ -119,7 +123,7 @@ class World:
             return xx, yy
 
 
-# To be run in the for testing and debugging purposes
+# To be run in the for testing and debugging
 if __name__ == '__main__':
     width, height = 1000, 1000
     # Generate 5 random landscapes

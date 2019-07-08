@@ -10,7 +10,7 @@ class WaterDroplet:
     """
     Class docstring
     """
-    INERTIA = 0.05  # At 0 water instantly changes direction. At 1, water will never change direction.
+    INERTIA = 0.0  # At 0 water instantly changes direction. At 1, water will never change direction.
 
     def __init__(self, world, x_dir=0.0, y_dir=0.0, water=0.2, material=0.0, sediment_capacity=4.0):
         """
@@ -52,7 +52,7 @@ class WaterDroplet:
         Determines the drop's current height and 2d gradient and calculates the new drop position
         Returns:
         """
-        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, self.world)
+        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self)
         # Update the droplet's direction and position (move position 1 unit regardless of speed)
         self.x_dir = (self.x_dir * self.INERTIA) - (x_grad * (1 - self.INERTIA))
         self.y_dir = (self.y_dir * self.INERTIA) - (y_grad * (1 - self.INERTIA))
@@ -68,14 +68,14 @@ class WaterDroplet:
         if self.x_pos < 1 or self.x_pos > self.world.lx - 2 or self.y_pos < 1 or self.y_pos > self.world.ly - 2:
             new_height = init_height
         else:
-            new_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, self.world)
+            new_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self)
 
         # Update the d_h attribute of the water droplet
         self.d_h = init_height - new_height
 
     # @jit(nopython=True, parallel=True)
     def erode(self):
-        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self, self.world)
+        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self)
         pos1, pos2, pos3, pos4 = WaterDroplet._find_nodes_and_offsets(self.x_pos, self.y_pos)[0:4]
         drop_pos = (self.x_pos, self.y_pos)
         coords = [pos1, pos2, pos3, pos4]
@@ -105,13 +105,13 @@ class WaterDroplet:
         cls.INERTIA = new_value
 
     # @jit(nopython=True)
-    def calc_height_and_grad(self, world):
+    def calc_height_and_grad(self):
         """
         Given the world in which the drop exists and the current (x,y) position, this static method calculates the
         current height of the drop and the 2d gradient. This is required to determine the gravitational force on the
         drop when establishing its next position.
         """
-        world = world.height_map
+        world = self.world.height_map
         nw, ne, se, sw, x_offset, y_offset = WaterDroplet._find_nodes_and_offsets(self.x_pos, self.y_pos)
         height_nw = world[nw[0]][nw[1]]
         height_ne = world[ne[0]][ne[1]]

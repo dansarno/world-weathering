@@ -1,8 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from importlib import reload
 import earth
 import water
 from mayavi import mlab
+
+reload(earth)
+reload(water)
 
 
 def out_of_bounds(world, rain):
@@ -21,7 +25,7 @@ w.generate_height(scale=400.0, rand=False)
 init_map = np.copy(w.height_map)
 w.mayavi_plot(new_fig=True)
 
-a_cloud = water.RainCloud(w, 20)
+a_cloud = water.RainCloud(w, 200)
 rain_drops = a_cloud.make_it_rain()
 # mlab.figure(size=(800, 640))
 for d, drop in enumerate(rain_drops):
