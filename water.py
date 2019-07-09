@@ -72,12 +72,11 @@ class WaterDroplet:
 
     def erode(self):
         init_height, grad_vector = WaterDroplet.calc_height_and_grad(self)
-        pos1, pos2, pos3, pos4 = WaterDroplet._find_nodes_and_offsets(self.pos)[0:4]
-        coords = [pos1, pos2, pos3, pos4]
-        for coord in coords:
-            dist = WaterDroplet._dist(self.pos, coord)
+        nodes = WaterDroplet._find_nodes_and_offsets(self.pos)[0]
+        for node in nodes:
+            dist = WaterDroplet._dist(self.pos, node)
             if not self.d_h < 0:
-                self.world.height_map[coord[0]][coord[1]] -= self.d_h * (dist / np.sqrt(2)) * self.water
+                self.world.height_map[node[0]][node[1]] -= self.d_h * (dist / np.sqrt(2)) * self.water
 
     def erode_radius(self, radius=3.0):
         if not self.d_h < 0:
@@ -106,19 +105,19 @@ class WaterDroplet:
         drop when establishing its next position.
         """
         world = self.world.height_map
-        nw, ne, se, sw, x_offset, y_offset = WaterDroplet._find_nodes_and_offsets(self.pos)
-        height_nw = world[nw[0]][nw[1]]
-        height_ne = world[ne[0]][ne[1]]
-        height_sw = world[sw[0]][sw[1]]
-        height_se = world[se[0]][se[1]]
+        nodes, offset = WaterDroplet._find_nodes_and_offsets(self.pos)
+        height_nw = world[nodes[0][0]][nodes[0][1]]
+        height_ne = world[nodes[1][0]][nodes[1][1]]
+        height_sw = world[nodes[3][0]][nodes[3][1]]
+        height_se = world[nodes[2][0]][nodes[2][1]]
         # Calculate droplet's direction of flow with bilinear interpolation of height difference along the edges
-        x_grad = ((height_ne - height_nw) * (1 - y_offset)) + ((height_se - height_sw) * y_offset)
-        y_grad = ((height_sw - height_nw) * (1 - x_offset)) + ((height_se - height_ne) * x_offset)
+        x_grad = ((height_ne - height_nw) * (1 - offset[1])) + ((height_se - height_sw) * offset[1])
+        y_grad = ((height_sw - height_nw) * (1 - offset[0])) + ((height_se - height_ne) * offset[0])
         # Calculate height with bilinear interpolation of the heights of the nodes of the cell
-        self.z_pos = (height_nw * (1 - x_offset) * (1 - y_offset)) + \
-                     (height_ne * x_offset * (1 - y_offset)) + \
-                     (height_sw * (1 - x_offset) * y_offset) + \
-                     (height_se * x_offset * y_offset)
+        self.z_pos = (height_nw * (1 - offset[0]) * (1 - offset[1])) + \
+                     (height_ne * offset[0] * (1 - offset[1])) + \
+                     (height_sw * (1 - offset[0]) * offset[1]) + \
+                     (height_se * offset[0] * offset[1])
         gradient = np.array([x_grad, y_grad])
 
         return self.z_pos, gradient
@@ -140,7 +139,9 @@ class WaterDroplet:
         ne = np.array([x2, y1])
         se = np.array([x2, y2])
         sw = np.array([x1, y2])
-        return nw, ne, se, sw, x_offset, y_offset
+        nodes = [nw, ne, se, sw]
+        offset = np.array([x_offset, y_offset])
+        return nodes, offset
 
     @staticmethod
     def _get_nodes_and_weights_in_radius(heightmap, drop_position, radius, funct='gauss'):
