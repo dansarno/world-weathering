@@ -10,20 +10,18 @@ class WaterDroplet:
     """
     Class docstring
     """
-    INERTIA = 0.0  # At 0 water instantly changes direction. At 1, water will never change direction.
+    INERTIA = 0.05  # At 0 water instantly changes direction. At 1, water will never change direction.
 
-    def __init__(self, world, x_dir=0.0, y_dir=0.0, water=0.2, material=0.0, sediment_capacity=4.0):
+    def __init__(self, world, water=0.2, material=0.0, sediment_capacity=4.0):
         """
 
         Args:
             world:
         """
         self.world = world
-        self.x_pos = random() * self.world.lx
-        self.y_pos = random() * self.world.ly
+        self.pos = np.array([random() * self.world.lx,  random() * self.world.ly])
         self.z_pos = 100.0  # TODO change this to something sensible i.e. initially high above the world
-        self.x_dir = x_dir
-        self.y_dir = y_dir
+        self.dir_vector = np.array([0.0, 0.0])
         self.water = water
         self.material = material
         self.sediment_capacity = sediment_capacity
@@ -31,11 +29,11 @@ class WaterDroplet:
 
     def __repr__(self):
         """Returns representation of the object e.g. WaterDroplet(43.535, 28.114)"""
-        return f'{self.__class__.__name__}({self.x_pos}, {self.y_pos})'
+        return f'{self.__class__.__name__}({self.pos[0]}, {self.pos[1]})'
 
     def __str__(self):
         """Returns a human-readable string describing the droplet object"""
-        return f'The water droplet is at: ({self.x_pos}, {self.y_pos})'
+        return f'The water droplet is at: ({self.pos[0]}, {self.pos[1]})'
 
     def __add__(self, other):
         # TODO find a way of combining the two droplet positions
@@ -52,42 +50,38 @@ class WaterDroplet:
         Determines the drop's current height and 2d gradient and calculates the new drop position
         Returns:
         """
-        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self)
+        init_height, grad_vector = WaterDroplet.calc_height_and_grad(self)
         # Update the droplet's direction and position (move position 1 unit regardless of speed)
-        self.x_dir = (self.x_dir * self.INERTIA) - (x_grad * (1 - self.INERTIA))
-        self.y_dir = (self.y_dir * self.INERTIA) - (y_grad * (1 - self.INERTIA))
+        self.dir_vector = (self.dir_vector * self.INERTIA) - (grad_vector * (1 - self.INERTIA))
+
         # Normalise direction
-        mag = np.sqrt((self.x_dir ** 2) + (self.y_dir ** 2))
-        if mag != 0:
-            self.x_dir /= mag
-            self.y_dir /= mag
+        direction_mag = np.linalg.norm(self.dir_vector)
+        if direction_mag:
+            self.dir_vector /= direction_mag
 
-        self.x_pos += self.x_dir
-        self.y_pos += self.y_dir
+        # Update position
+        self.pos += self.dir_vector
 
-        if self.x_pos < 1 or self.x_pos > self.world.lx - 2 or self.y_pos < 1 or self.y_pos > self.world.ly - 2:
+        if self.pos[0] < 1 or self.pos[0] > self.world.lx - 2 or self.pos[1] < 1 or self.pos[1] > self.world.ly - 2:
             new_height = init_height
         else:
-            new_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self)
+            new_height = WaterDroplet.calc_height_and_grad(self)[0]
 
         # Update the d_h attribute of the water droplet
         self.d_h = init_height - new_height
 
-    # @jit(nopython=True, parallel=True)
     def erode(self):
-        init_height, x_grad, y_grad = WaterDroplet.calc_height_and_grad(self)
-        pos1, pos2, pos3, pos4 = WaterDroplet._find_nodes_and_offsets(self.x_pos, self.y_pos)[0:4]
-        drop_pos = (self.x_pos, self.y_pos)
+        init_height, grad_vector = WaterDroplet.calc_height_and_grad(self)
+        pos1, pos2, pos3, pos4 = WaterDroplet._find_nodes_and_offsets(self.pos)[0:4]
         coords = [pos1, pos2, pos3, pos4]
         for coord in coords:
-            dist = WaterDroplet._dist(drop_pos, coord)
+            dist = WaterDroplet._dist(self.pos, coord)
             if not self.d_h < 0:
                 self.world.height_map[coord[0]][coord[1]] -= self.d_h * (dist / np.sqrt(2)) * self.water
 
     def erode_radius(self, radius=3.0):
-        drop_pos = (self.x_pos, self.y_pos)
         if not self.d_h < 0:
-            weightings_dict = WaterDroplet._get_nodes_and_weights_in_raduis(self.world.height_map, drop_pos, radius)
+            weightings_dict = WaterDroplet._get_nodes_and_weights_in_radius(self.world.height_map, self.pos, radius)
             for pos, weight in weightings_dict.items():
                 i, j = pos
                 self.world.height_map[i][j] -= self.d_h * weight * self.water
@@ -112,7 +106,7 @@ class WaterDroplet:
         drop when establishing its next position.
         """
         world = self.world.height_map
-        nw, ne, se, sw, x_offset, y_offset = WaterDroplet._find_nodes_and_offsets(self.x_pos, self.y_pos)
+        nw, ne, se, sw, x_offset, y_offset = WaterDroplet._find_nodes_and_offsets(self.pos)
         height_nw = world[nw[0]][nw[1]]
         height_ne = world[ne[0]][ne[1]]
         height_sw = world[sw[0]][sw[1]]
@@ -125,40 +119,41 @@ class WaterDroplet:
                      (height_ne * x_offset * (1 - y_offset)) + \
                      (height_sw * (1 - x_offset) * y_offset) + \
                      (height_se * x_offset * y_offset)
+        gradient = np.array([x_grad, y_grad])
 
-        return self.z_pos, x_grad, y_grad
+        return self.z_pos, gradient
 
     @staticmethod
     @jit(nopython=True)
-    def _find_nodes_and_offsets(x_pos, y_pos):
-        x_coord = int(x_pos)
-        y_coord = int(y_pos)
+    def _find_nodes_and_offsets(position_coord):
+        x_coord = int(position_coord[0])
+        y_coord = int(position_coord[1])
         # Calculate droplet's offset inside the cell (0,0) = at NW node, (1,1) = at SE node
-        x_offset = x_pos - x_coord
-        y_offset = y_pos - y_coord
+        x_offset = position_coord[0] - x_coord
+        y_offset = position_coord[0] - y_coord
         # Calculate heights of the four nodes of the droplet's cell
         x1 = x_coord
         x2 = x_coord + 1
         y1 = y_coord
         y2 = y_coord + 1
-        nw = (x1, y1)
-        ne = (x2, y1)
-        se = (x2, y2)
-        sw = (x1, y2)
+        nw = np.array([x1, y1])
+        ne = np.array([x2, y1])
+        se = np.array([x2, y2])
+        sw = np.array([x1, y2])
         return nw, ne, se, sw, x_offset, y_offset
 
     @staticmethod
-    def _get_nodes_and_weights_in_raduis(heightmap, drop_position, radius, funct='gauss'):
+    def _get_nodes_and_weights_in_radius(heightmap, drop_position, radius, funct='gauss'):
         x_minus, x_plus, y_minus, y_plus = WaterDroplet._calc_local_space(heightmap, drop_position, radius)
         dict_position_and_weights = {}
         for i in range(int(x_minus), int(x_plus)):
             for j in range(int(y_minus), int(y_plus)):
-                grid_point = (i, j)
+                grid_point = np.array([i, j])
                 drop_to_gridpoint = WaterDroplet._dist(grid_point, drop_position)
                 if drop_to_gridpoint < radius:
                     if funct == 'gauss':
                         weighting = WaterDroplet._gauss(drop_to_gridpoint, radius)
-                        dict_position_and_weights[grid_point] = weighting
+                        dict_position_and_weights[tuple(grid_point)] = weighting
         return dict_position_and_weights
 
     @staticmethod
@@ -173,11 +168,12 @@ class WaterDroplet:
         return x_minus, x_plus, y_minus, y_plus
 
     @staticmethod
-    @jit(nopython=True)
     def _dist(pos1, pos2):
-        x1, y1 = pos1
-        x2, y2 = pos2
-        return np.sqrt((x1-x2)**2 + (y1-y2)**2)
+        # distance = np.linalg.norm(pos1-pos2)
+        # print(distance)
+        distance = np.sqrt(np.sum((pos1 - pos2)**2))
+        print(distance, pos1, pos2)
+        return distance
 
     @staticmethod
     @jit(nopython=True)
@@ -233,10 +229,14 @@ class RainCloud(WaterDroplet):
     def show_cloud(self):
         """Displays an image of the cloud"""
         print(f'This cloud has {self.num_droplets} droplets')
-        cloud_image = np.zeros((self.world.lx, self.world.ly))
+        cloud_image = np.zeros_like(self.world.height_map)
         for drop in self.cloud:
-            cloud_image[drop.x_pos, drop.y_pos] = 1.0
-        scipy.misc.toimage(cloud_image).show()
+            i, j = drop.pos
+            cloud_image[int(i), int(j)] = 1.0
+        # scipy.misc.toimage(cloud_image).show()
+        plt.figure()
+        plt.imshow(cloud_image, cmap='gray')
+        plt.show()
 
 
 # To be run in the for testing and debugging purposes
@@ -245,7 +245,7 @@ if __name__ == '__main__':
     w = earth.World(width, height)
     w.generate_height()
 
-    test_dict = WaterDroplet._get_nodes_and_weights_in_raduis(w.height_map, (45.2, 70.3), 6)
+    test_dict = WaterDroplet._get_nodes_and_weights_in_radius(w.height_map, (45.2, 70.3), 6)
     print(test_dict)
 
     canvas = np.zeros(np.shape(w.height_map))
