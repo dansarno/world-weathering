@@ -16,7 +16,7 @@ def out_of_bounds(world, rain):
         return False
 
 
-iterations = 10
+iterations = 1000
 width, height = 1000, 1000
 radius = 3.0
 
@@ -25,7 +25,7 @@ w.generate_height(scale=400.0, rand=False)
 init_map = np.copy(w.height_map)
 w.mayavi_plot(new_fig=True)
 
-a_cloud = water.RainCloud(w, 20)
+a_cloud = water.RainCloud(w, 2000)
 rain_drops = a_cloud.make_it_rain()
 # mlab.figure(size=(800, 640))
 for d, drop in enumerate(rain_drops):
@@ -37,11 +37,8 @@ for d, drop in enumerate(rain_drops):
         drop.roll()
         if out_of_bounds(w, drop):
             break
-        drop.erode_radius(radius=radius)
-        print(drop.d_h)
-        if drop.z_pos < 0:
-            print("less than!")
-            break
+        # drop.erode_radius(radius=radius)
+        drop.erode()
     # xdata.append(drop.x_pos)
     # ydata.append(drop.y_pos)
     # zdata.append(water.WaterDroplet.calc_height_and_grad(drop, w)[0]*40)

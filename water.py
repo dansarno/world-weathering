@@ -10,7 +10,7 @@ class WaterDroplet:
     """
     Class docstring
     """
-    INERTIA = 0.05  # At 0 water instantly changes direction. At 1, water will never change direction.
+    INERTIA = 0.2  # At 0 water instantly changes direction. At 1, water will never change direction.
 
     def __init__(self, world, water=0.2, material=0.0, sediment_capacity=4.0):
         """
@@ -55,7 +55,8 @@ class WaterDroplet:
         self.dir_vector = (self.dir_vector * self.INERTIA) - (grad_vector * (1 - self.INERTIA))
 
         # Normalise direction
-        direction_mag = np.linalg.norm(self.dir_vector)
+        # direction_mag = np.linalg.norm(self.dir_vector)
+        direction_mag = np.sqrt(np.sum(self.dir_vector ** 2))
         if direction_mag:
             self.dir_vector /= direction_mag
 
@@ -74,9 +75,9 @@ class WaterDroplet:
         init_height, grad_vector = WaterDroplet.calc_height_and_grad(self)
         nodes = WaterDroplet._find_nodes_and_offsets(self.pos)[0]
         for node in nodes:
-            dist = WaterDroplet._dist(self.pos, node)
+            weight = WaterDroplet._dist(self.pos, node) / np.sqrt(2)
             if not self.d_h < 0:
-                self.world.height_map[node[0]][node[1]] -= self.d_h * (dist / np.sqrt(2)) * self.water
+                self.world.height_map[node[0]][node[1]] -= self.d_h * weight * self.water
 
     def erode_radius(self, radius=3.0):
         if not self.d_h < 0:
@@ -98,6 +99,12 @@ class WaterDroplet:
         cls.INERTIA = new_value
 
     # @jit(nopython=True)
+    def update_height(self):
+        pass
+
+    def calc_gradient(self):
+        pass
+
     def calc_height_and_grad(self):
         """
         Given the world in which the drop exists and the current (x,y) position, this static method calculates the
@@ -129,7 +136,7 @@ class WaterDroplet:
         y_coord = int(position_coord[1])
         # Calculate droplet's offset inside the cell (0,0) = at NW node, (1,1) = at SE node
         x_offset = position_coord[0] - x_coord
-        y_offset = position_coord[0] - y_coord
+        y_offset = position_coord[1] - y_coord
         # Calculate heights of the four nodes of the droplet's cell
         x1 = x_coord
         x2 = x_coord + 1
@@ -170,10 +177,7 @@ class WaterDroplet:
 
     @staticmethod
     def _dist(pos1, pos2):
-        # distance = np.linalg.norm(pos1-pos2)
-        # print(distance)
         distance = np.sqrt(np.sum((pos1 - pos2)**2))
-        print(distance, pos1, pos2)
         return distance
 
     @staticmethod
