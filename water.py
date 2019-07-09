@@ -10,15 +10,16 @@ class WaterDroplet:
     """
     Class docstring
     """
-    INERTIA = 0.2  # At 0 water instantly changes direction. At 1, water will never change direction.
+    INERTIA = 0.05  # At 0 water instantly changes direction. At 1, water will never change direction.
 
-    def __init__(self, world, water=0.2, material=0.0, sediment_capacity=4.0):
+    def __init__(self, world, water=0.1, material=0.0, sediment_capacity=4.0):
         """
 
         Args:
             world:
         """
         self.world = world
+        # self.pos = np.array([(random() * 30) + (self.world.lx / 2),  (random() * 30) + (self.world.ly / 2)])
         self.pos = np.array([random() * self.world.lx,  random() * self.world.ly])
         self.z_pos = 100.0  # TODO change this to something sensible i.e. initially high above the world
         self.dir_vector = np.array([0.0, 0.0])
@@ -76,8 +77,12 @@ class WaterDroplet:
         nodes = WaterDroplet._find_nodes_and_offsets(self.pos)[0]
         for node in nodes:
             weight = WaterDroplet._dist(self.pos, node) / np.sqrt(2)
-            if not self.d_h < 0:
-                self.world.height_map[node[0]][node[1]] -= self.d_h * weight * self.water
+            # if not self.d_h < 0:
+            new_height = self.world.height_map[node[0]][node[1]] - np.abs(self.d_h) * weight * self.water
+            if new_height < 0.05:
+                self.world.height_map[node[0]][node[1]] = 0.05
+            else:
+                self.world.height_map[node[0]][node[1]] = new_height
 
     def erode_radius(self, radius=3.0):
         if not self.d_h < 0:
