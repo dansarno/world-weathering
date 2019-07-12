@@ -13,3 +13,10 @@ world-weathering uses Perlin noise to procedurally generate the worlds which are
 Before                       |  After
 :---------------------------:|:-----------------------------:
 ![](ReadmeContent/before.png)|  ![](ReadmeContent/after.png)
+
+<p align="center">
+  <img src="ReadmeContent/before.png" width=40%>
+  <img src="ReadmeContent/after.png" width=40%>
+  <br>
+  <em> Typical result from simulated hydraulic erosion. Left is before, right is after. </em>
+</p>
