@@ -226,11 +226,6 @@ class RainCloud(WaterDroplet):
             self.cloud.append(WaterDroplet(self.world))
         return self.cloud
 
-    # def erode(self):
-    #     for drop in self.cloud:
-    #         super().erode()
-    #     pass
-
     def print_droplets(self):
         """Prints the position of each droplet in the cloud"""
         for drop in self.cloud:
@@ -266,22 +261,3 @@ if __name__ == '__main__':
 
     plt.imshow(canvas, cmap='bone')
     plt.show()
-
-    # y = []
-    # x_axis = np.arange(-5.0, 5.0, 0.1)
-    # for x in x_axis:
-    #     y.append(WaterDroplet._gauss(x, 4))
-    #
-    # plt.figure()
-    # plt.plot(x_axis, y)
-    # plt.show()
-
-    # test_cloud = RainCloud(w, 100)
-    # test_cloud.make_it_rain()
-
-    # x = 0.5
-    # y = 0.5
-    # d = WaterDroplet(w, x, y)
-    # pos1, pos2, pos3, pos4 = d._find_nodes_and_offsets(x, y)[:4]
-    # coord = (x, y)
-    # print(d._dist(pos1, coord))
