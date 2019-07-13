@@ -25,8 +25,8 @@ w.generate_height(scale=400.0, rand=False)
 init_map = np.copy(w.height_map)
 w.mayavi_plot(new_fig=True)
 
-a_cloud = water.RainCloud(w, 500)
-rain_drops = a_cloud.make_it_rain()
+a_cloud = water.RainCloud(w, 10000)
+rain_drops = a_cloud.make_it_rain(strength=[0.1, 0.3])
 # mlab.figure(size=(800, 640))
 for d, drop in enumerate(rain_drops):
     print(f'Simulating drop {d+1}')
@@ -37,8 +37,8 @@ for d, drop in enumerate(rain_drops):
         drop.roll()
         if out_of_bounds(w, drop):
             break
-        drop.erode()
         # drop.erode()
+        drop.erode_radius()
     # xdata.append(drop.x_pos)
     # ydata.append(drop.y_pos)
     # zdata.append(water.WaterDroplet.calc_height_and_grad(drop, w)[0]*40)

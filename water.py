@@ -73,7 +73,7 @@ class WaterDroplet:
         self.d_h = init_height - new_height
 
     def erode(self):
-        init_height, grad_vector = WaterDroplet.calc_height_and_grad(self)
+        # init_height, grad_vector = WaterDroplet.calc_height_and_grad(self)
         nodes = WaterDroplet._find_nodes_and_offsets(self.pos)[0]
         for node in nodes:
             weight = WaterDroplet._dist(self.pos, node) / np.sqrt(2)
@@ -89,7 +89,11 @@ class WaterDroplet:
             weightings_dict = WaterDroplet._get_nodes_and_weights_in_radius(self.world.height_map, self.pos, radius)
             for pos, weight in weightings_dict.items():
                 i, j = pos
-                self.world.height_map[i][j] -= self.d_h * weight * self.water
+                new_height = self.world.height_map[i][j] - self.d_h * weight * self.water
+                if new_height < 0.05:
+                    self.world.height_map[i][j] = 0.05
+                else:
+                    self.world.height_map[i][j] = new_height
 
     def evapourate(self):
         """Docstring"""
@@ -220,10 +224,14 @@ class RainCloud(WaterDroplet):
         """Returns the WaterDroplet object at that cloud element number"""
         return self.cloud[item]
 
-    def make_it_rain(self):
+    def make_it_rain(self, strength=None):
         """ Creates an array of WaterDroplet objects and stores them in self.cloud list"""
         for _ in range(self.num_droplets):
-            self.cloud.append(WaterDroplet(self.world))
+            if strength:
+                random_strength = strength[0] + (random() * strength[1])
+                self.cloud.append(WaterDroplet(self.world, water=random_strength))
+            else:
+                self.cloud.append(WaterDroplet(self.world))
         return self.cloud
 
     def print_droplets(self):
