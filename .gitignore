@@ -1,5 +1,10 @@
+# Python files
 *.pyc
 *.pckl
+
+# Folders
 scratch/*
 world_venv/*
+
+# Other
 .idea

@@ -21,7 +21,7 @@ width, height = 1000, 1000
 radius = 3.0
 
 w = earth.World(width, height)
-w.generate_height(scale=400.0, rand=False)
+w.generate_height(scale=400.0, rand=True)
 init_map = np.copy(w.height_map)
 w.mayavi_plot(new_fig=True)
 
@@ -39,6 +39,7 @@ for d, drop in enumerate(rain_drops):
             break
         # drop.erode()
         drop.erode_radius()
+        drop.evapourate()
     # xdata.append(drop.x_pos)
     # ydata.append(drop.y_pos)
     # zdata.append(water.WaterDroplet.calc_height_and_grad(drop, w)[0]*40)

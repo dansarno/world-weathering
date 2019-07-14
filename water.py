@@ -12,7 +12,7 @@ class WaterDroplet:
     """
     INERTIA = 0.05  # At 0 water instantly changes direction. At 1, water will never change direction.
 
-    def __init__(self, world, water=0.1, material=0.0, sediment_capacity=4.0):
+    def __init__(self, world, water=0.1, material=0.0, evapouration_rate=0.001, sediment_capacity=4.0):
         """
 
         Args:
@@ -25,6 +25,7 @@ class WaterDroplet:
         self.dir_vector = np.array([0.0, 0.0])
         self.water = water
         self.material = material
+        self.evapouration_rate = evapouration_rate
         self.sediment_capacity = sediment_capacity
         self.d_h = 0
 
@@ -89,7 +90,7 @@ class WaterDroplet:
             weightings_dict = WaterDroplet._get_nodes_and_weights_in_radius(self.world.height_map, self.pos, radius)
             for pos, weight in weightings_dict.items():
                 i, j = pos
-                new_height = self.world.height_map[i][j] - self.d_h * weight * self.water
+                new_height = self.world.height_map[i][j] - (self.d_h * weight * self.water)
                 if new_height < 0.05:
                     self.world.height_map[i][j] = 0.05
                 else:
@@ -97,7 +98,8 @@ class WaterDroplet:
 
     def evapourate(self):
         """Docstring"""
-        pass
+        if not self.water < 0:
+            self.water -= self.evapouration_rate
 
     def remove_drop(self):
         """Docstring"""

@@ -20,3 +20,5 @@ world-weathering uses Perlin noise to procedurally generate the worlds which are
   <br>
   <em> Typical result from simulated hydraulic erosion. Left is before, right is after. </em>
 </p>
+
+## Acknowledgments
