@@ -16,36 +16,38 @@ def out_of_bounds(world, rain):
         return False
 
 
+# @mlab.animate
+def animate(mlab_obj, n_iterations, water_droplets, terrain):
+    for n, droplet in enumerate(water_droplets):
+        print(f'Simulating drop {n+1}')
+        for _ in range(n_iterations):
+            if out_of_bounds(terrain, droplet):
+                break
+            droplet.roll()
+            if out_of_bounds(terrain, droplet):
+                break
+            droplet.erode_radius()
+            droplet.evapourate()
+        # mlab_obj.mlab_source.scalars = terrain.height_map
+
+
+# User Parameters
 iterations = 100
+n_drops = 1000
 width, height = 1000, 1000
 radius = 3.0
 
 w = earth.World(width, height)
 w.generate_height(scale=400.0, rand=True)
 init_map = np.copy(w.height_map)
-w.mayavi_plot(new_fig=True)
+s = w.mayavi_plot(new_fig=True)
 
-a_cloud = water.RainCloud(w, 10000)
+a_cloud = water.RainCloud(w, n_drops)
 rain_drops = a_cloud.make_it_rain(strength=[0.1, 0.3])
-# mlab.figure(size=(800, 640))
-for d, drop in enumerate(rain_drops):
-    print(f'Simulating drop {d+1}')
-    # xdata, ydata, zdata = [], [], []
-    for i in range(iterations):
-        if out_of_bounds(w, drop):
-            break
-        drop.roll()
-        if out_of_bounds(w, drop):
-            break
-        # drop.erode()
-        drop.erode_radius()
-        drop.evapourate()
-    # xdata.append(drop.x_pos)
-    # ydata.append(drop.y_pos)
-    # zdata.append(water.WaterDroplet.calc_height_and_grad(drop, w)[0]*40)
-    # mlab.points3d(xdata, ydata, zdata, color=(0, 0.2, 1), scale_factor=.5)  # line_width=100.0, tube_radius=.25
+
+animate(s, iterations, rain_drops, w)
 
 final_map = w.height_map
+print(f"The map has lost {np.sum(final_map - init_map)} material")
 w.mayavi_plot(new_fig=True)
 mlab.show()
-

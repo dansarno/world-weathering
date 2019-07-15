@@ -110,7 +110,8 @@ class World:
         xx, yy = World._generate_grid(self)
         if new_fig:
             mlab.figure(size=(800, 640))
-        mlab.surf(xx, yy, self.height_map, colormap=cmap, warp_scale=scale)
+        mlab_obj = mlab.surf(xx, yy, self.height_map, colormap=cmap, warp_scale=scale)
+        return mlab_obj
 
     def _generate_grid(self, transpose_return=True):
         """ Private method to generate a grid given the world dimensions"""
