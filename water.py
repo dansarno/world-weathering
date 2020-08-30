@@ -3,7 +3,6 @@ from random import random
 import scipy.misc
 import matplotlib.pyplot as plt
 import earth
-from numba import jit
 
 
 class WaterDroplet:
@@ -11,22 +10,19 @@ class WaterDroplet:
     Class docstring
     """
     INERTIA = 0.05  # At 0 water instantly changes direction. At 1, water will never change direction.
+    EVAP_RATE = 0.001
 
-    def __init__(self, world, water=0.1, material=0.0, evapouration_rate=0.001, sediment_capacity=4.0):
+    def __init__(self, world, pos, vector=np.array([0.0, 0.0]), water=0.1):
         """
 
         Args:
             world:
         """
         self.world = world
-        # self.pos = np.array([(random() * 30) + (self.world.lx / 2),  (random() * 30) + (self.world.ly / 2)])
-        self.pos = np.array([random() * self.world.lx,  random() * self.world.ly])
+        self.pos = pos  # .array([random() * self.world.lx,  random() * self.world.ly])
         self.z_pos = 100.0  # TODO change this to something sensible i.e. initially high above the world
-        self.dir_vector = np.array([0.0, 0.0])
+        self.vector = vector
         self.water = water
-        self.material = material
-        self.evapouration_rate = evapouration_rate
-        self.sediment_capacity = sediment_capacity
         self.d_h = 0
 
     def __repr__(self):
@@ -38,43 +34,39 @@ class WaterDroplet:
         return f'The water droplet is at: ({self.pos[0]}, {self.pos[1]})'
 
     def __add__(self, other):
-        # TODO find a way of combining the two droplet positions
-        d = self.water + other.water  # combine the water volume
-        m = self.material + other.material  # combine the droplet's sediment
-        x = self.x_dir + other.x_dir  # add the x components of the direction vectors
-        y = self.y_dir + other.y_dir  # add the y components of the direction vectors
+        new_water = self.water + other.water  # combine the water volume
+        new_vect = self.vector + other.vector  # combine the water vectors
         # TODO remove the two instances of the droplets to be combined
-        return WaterDroplet(self.world, x_dir=x, y_dir=y, water=d, material=m)
+        return WaterDroplet(self.world, self.pos, vector=new_vect, water=new_water)
 
-    # @jit(nopython=True)
     def roll(self):
         """
         Determines the drop's current height and 2d gradient and calculates the new drop position
         Returns:
         """
-        init_height, grad_vector = WaterDroplet.calc_height_and_grad(self)
+        init_height, grad_vector = WaterDroplet._calc_height_and_grad(self)
         # Update the droplet's direction and position (move position 1 unit regardless of speed)
-        self.dir_vector = (self.dir_vector * self.INERTIA) - (grad_vector * (1 - self.INERTIA))
+        self.vector = (self.vector * self.INERTIA) - (grad_vector * (1 - self.INERTIA))
 
         # Normalise direction
-        # direction_mag = np.linalg.norm(self.dir_vector)
-        direction_mag = np.sqrt(np.sum(self.dir_vector ** 2))
+        # direction_mag = np.linalg.norm(self.vector)
+        direction_mag = np.sqrt(np.sum(self.vector ** 2))
         if direction_mag:
-            self.dir_vector /= direction_mag
+            self.vector /= direction_mag
 
         # Update position
-        self.pos += self.dir_vector
+        self.pos += self.vector
 
         if self.pos[0] < 1 or self.pos[0] > self.world.lx - 2 or self.pos[1] < 1 or self.pos[1] > self.world.ly - 2:
             new_height = init_height
         else:
-            new_height = WaterDroplet.calc_height_and_grad(self)[0]
+            new_height = WaterDroplet._calc_height_and_grad(self)[0]
 
         # Update the d_h attribute of the water droplet
         self.d_h = init_height - new_height
 
     def erode(self):
-        # init_height, grad_vector = WaterDroplet.calc_height_and_grad(self)
+        # init_height, grad_vector = WaterDroplet._calc_height_and_grad(self)
         nodes = WaterDroplet._find_nodes_and_offsets(self.pos)[0]
         for node in nodes:
             weight = WaterDroplet._dist(self.pos, node) / np.sqrt(2)
@@ -89,17 +81,17 @@ class WaterDroplet:
         if not self.d_h < 0:
             weightings_dict = WaterDroplet._get_nodes_and_weights_in_radius(self.world.height_map, self.pos, radius)
             for pos, weight in weightings_dict.items():
-                i, j = pos
-                new_height = self.world.height_map[i][j] - (self.d_h * weight * self.water)
+                row, col = pos
+                new_height = self.world.height_map[row][col] - (self.d_h * weight * self.water)
                 if new_height < 0.05:
-                    self.world.height_map[i][j] = 0.05
+                    self.world.height_map[row][col] = 0.05
                 else:
-                    self.world.height_map[i][j] = new_height
+                    self.world.height_map[row][col] = new_height
 
     def evapourate(self):
         """Docstring"""
         if not self.water < 0:
-            self.water -= self.evapouration_rate
+            self.water -= self.EVAP_RATE
 
     def remove_drop(self):
         """Docstring"""
@@ -109,14 +101,17 @@ class WaterDroplet:
     def change_inertia(cls, new_value):
         cls.INERTIA = new_value
 
-    # @jit(nopython=True)
+    @classmethod
+    def change_evapouration_rate(cls, new_value):
+        cls.EVAP_RATE = new_value
+
     def update_height(self):
         pass
 
     def calc_gradient(self):
         pass
 
-    def calc_height_and_grad(self):
+    def _calc_height_and_grad(self):
         """
         Given the world in which the drop exists and the current (x,y) position, this static method calculates the
         current height of the drop and the 2d gradient. This is required to determine the gravitational force on the
@@ -141,7 +136,6 @@ class WaterDroplet:
         return self.z_pos, gradient
 
     @staticmethod
-    @jit(nopython=True)
     def _find_nodes_and_offsets(position_coord):
         x_coord = int(position_coord[0])
         y_coord = int(position_coord[1])
@@ -176,7 +170,6 @@ class WaterDroplet:
         return dict_position_and_weights
 
     @staticmethod
-    @jit(nopython=True)
     def _calc_local_space(heightmap, drop_position, radius):
         x, y = drop_position
         # Define subsection of map to search (+radius to -radius square)
@@ -192,12 +185,11 @@ class WaterDroplet:
         return distance
 
     @staticmethod
-    @jit(nopython=True)
     def _gauss(distance, radius):
         return np.exp(-np.power(distance, 2) / (2 * np.power(np.sqrt(radius) / 2, 2)))
 
 
-class RainCloud(WaterDroplet):
+class RainCloud:
     def __init__(self, world, num_droplets):
         """
         Args:
@@ -264,9 +256,9 @@ if __name__ == '__main__':
     print(test_dict)
 
     canvas = np.zeros(np.shape(w.height_map))
-    for pos, weight in test_dict.items():
-        print(pos, weight)
-        i, j = pos
+    for position, weight in test_dict.items():
+        print(position, weight)
+        i, j = position
         canvas[i][j] = weight
 
     plt.imshow(canvas, cmap='bone')

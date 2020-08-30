@@ -5,6 +5,7 @@
 # Folders
 scratch/*
 world_venv/*
+venv/*
 
 # Other
 .idea
