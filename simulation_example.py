@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from importlib import reload
 import earth
 import water
-from mayavi import mlab
+# from mayavi import mlab
 
 reload(earth)
 reload(water)
@@ -17,7 +17,7 @@ def out_of_bounds(world, rain):
 
 
 # @mlab.animate
-def animate(mlab_obj, n_iterations, water_droplets, terrain):
+def animate(n_iterations, water_droplets, terrain):
     for n, droplet in enumerate(water_droplets):
         print(f'Simulating drop {n+1}')
         for _ in range(n_iterations):
@@ -40,14 +40,16 @@ radius = 3.0
 w = earth.World(width, height)
 w.generate_height(scale=400.0, rand=True)
 init_map = np.copy(w.height_map)
-s = w.mayavi_plot(new_fig=True)
+# s = w.mayavi_plot(new_fig=True)
+w.show_map()
 
 a_cloud = water.RainCloud(w, n_drops)
 rain_drops = a_cloud.make_it_rain(strength=[0.1, 0.3])
 
-animate(s, iterations, rain_drops, w)
+animate(iterations, rain_drops, w)
 
 final_map = w.height_map
 print(f"The map has lost {np.sum(final_map - init_map)} material")
-w.mayavi_plot(new_fig=True)
-mlab.show()
+# w.mayavi_plot(new_fig=True)
+w.show_map()
+# mlab.show()

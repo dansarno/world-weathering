@@ -2,7 +2,7 @@ import noise
 import numpy as np
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
-from mayavi import mlab
+# from mayavi import mlab
 import random
 
 
@@ -86,7 +86,7 @@ class World:
 
         """
         plt.figure()
-        plt.imshow(self.height_map)
+        plt.imshow(self.height_map, cmap="gray")
 
     def matplotlib_plot(self):
         """
@@ -104,14 +104,14 @@ class World:
         ax.set_ylabel('y')
         ax.set_zlabel('z')
 
-    def mayavi_plot(self, new_fig=False, cmap='copper', scale=400):
-        """
-        """
-        xx, yy = World._generate_grid(self)
-        if new_fig:
-            mlab.figure(size=(800, 640))
-        mlab_obj = mlab.surf(xx, yy, self.height_map, colormap=cmap, warp_scale=scale)
-        return mlab_obj
+    # def mayavi_plot(self, new_fig=False, cmap='copper', scale=400):
+    #     """
+    #     """
+    #     xx, yy = World._generate_grid(self)
+    #     if new_fig:
+    #         mlab.figure(size=(800, 640))
+    #     mlab_obj = mlab.surf(xx, yy, self.height_map, colormap=cmap, warp_scale=scale)
+    #     return mlab_obj
 
     def _generate_grid(self, transpose_return=True):
         """ Private method to generate a grid given the world dimensions"""
@@ -131,6 +131,8 @@ if __name__ == '__main__':
     for f_t in range(2):
         w = World(width, height)
         w.generate_height(scale=400, rand=bool(f_t))
-        w.mayavi_plot(new_fig=True, scale=400)
+        w.show_map()
+        # w.mayavi_plot(new_fig=True, scale=400)
 
-    mlab.show()
+    # plt.imshow(canvas, cmap='bone')
+    # mlab.show()

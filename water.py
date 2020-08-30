@@ -1,5 +1,5 @@
 import numpy as np
-from random import random
+import random
 import scipy.misc
 import matplotlib.pyplot as plt
 import earth
@@ -19,7 +19,7 @@ class WaterDroplet:
             world:
         """
         self.world = world
-        self.pos = pos  # .array([random() * self.world.lx,  random() * self.world.ly])
+        self.pos = pos
         self.z_pos = 100.0  # TODO change this to something sensible i.e. initially high above the world
         self.vector = vector
         self.water = water
@@ -221,11 +221,12 @@ class RainCloud:
     def make_it_rain(self, strength=None):
         """ Creates an array of WaterDroplet objects and stores them in self.cloud list"""
         for _ in range(self.num_droplets):
+            random_position = np.array([random.random() * self.world.lx, random.random() * self.world.ly])
             if strength:
-                random_strength = strength[0] + (random() * strength[1])
-                self.cloud.append(WaterDroplet(self.world, water=random_strength))
+                random_strength = strength[0] + (random.random() * strength[1])
+                self.cloud.append(WaterDroplet(self.world, random_position, water=random_strength))
             else:
-                self.cloud.append(WaterDroplet(self.world))
+                self.cloud.append(WaterDroplet(self.world, random_position))
         return self.cloud
 
     def print_droplets(self):
