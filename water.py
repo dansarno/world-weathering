@@ -1,6 +1,5 @@
 import numpy as np
 import random
-import scipy.misc
 import matplotlib.pyplot as plt
 import earth
 
@@ -13,8 +12,7 @@ class WaterDroplet:
     EVAP_RATE = 0.001
 
     def __init__(self, pos, vector=np.array([0.0, 0.0]), water=0.1):
-        """
-        """
+        """Constructor"""
         self.pos = pos
         self.z_pos = 100.0  # TODO change this to something sensible i.e. initially high above the world
         self.vector = vector
@@ -30,10 +28,11 @@ class WaterDroplet:
         return f'The water droplet is at: ({self.pos[0]}, {self.pos[1]})'
 
     def __add__(self, other):
+        new_pos = self.pos
         new_water = self.water + other.water  # combine the water volume
         new_vect = self.vector + other.vector  # combine the water vectors
         # TODO remove the two instances of the droplets to be combined
-        return WaterDroplet(self.pos, vector=new_vect, water=new_water)
+        return WaterDroplet(new_pos, vector=new_vect, water=new_water)
 
     def roll(self, world):
         """
