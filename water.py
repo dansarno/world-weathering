@@ -12,13 +12,9 @@ class WaterDroplet:
     INERTIA = 0.05  # At 0 water instantly changes direction. At 1, water will never change direction.
     EVAP_RATE = 0.001
 
-    def __init__(self, world, pos, vector=np.array([0.0, 0.0]), water=0.1):
+    def __init__(self, pos, vector=np.array([0.0, 0.0]), water=0.1):
         """
-
-        Args:
-            world:
         """
-        self.world = world
         self.pos = pos
         self.z_pos = 100.0  # TODO change this to something sensible i.e. initially high above the world
         self.vector = vector
@@ -37,14 +33,14 @@ class WaterDroplet:
         new_water = self.water + other.water  # combine the water volume
         new_vect = self.vector + other.vector  # combine the water vectors
         # TODO remove the two instances of the droplets to be combined
-        return WaterDroplet(self.world, self.pos, vector=new_vect, water=new_water)
+        return WaterDroplet(self.pos, vector=new_vect, water=new_water)
 
-    def roll(self):
+    def roll(self, world):
         """
         Determines the drop's current height and 2d gradient and calculates the new drop position
         Returns:
         """
-        init_height, grad_vector = WaterDroplet._calc_height_and_grad(self)
+        init_height, grad_vector = WaterDroplet._calc_height_and_grad(self, world)
         # Update the droplet's direction and position (move position 1 unit regardless of speed)
         self.vector = (self.vector * self.INERTIA) - (grad_vector * (1 - self.INERTIA))
 
@@ -57,36 +53,33 @@ class WaterDroplet:
         # Update position
         self.pos += self.vector
 
-        if self.pos[0] < 1 or self.pos[0] > self.world.lx - 2 or self.pos[1] < 1 or self.pos[1] > self.world.ly - 2:
+        if self.pos[0] < 1 or self.pos[0] > world.lx - 2 or self.pos[1] < 1 or self.pos[1] > world.ly - 2:
             new_height = init_height
         else:
-            new_height = WaterDroplet._calc_height_and_grad(self)[0]
+            new_height = WaterDroplet._calc_height_and_grad(self, world)[0]
 
         # Update the d_h attribute of the water droplet
         self.d_h = init_height - new_height
 
-    def erode(self):
+    def erode(self, world):
         # init_height, grad_vector = WaterDroplet._calc_height_and_grad(self)
         nodes = WaterDroplet._find_nodes_and_offsets(self.pos)[0]
         for node in nodes:
             weight = WaterDroplet._dist(self.pos, node) / np.sqrt(2)
             # if not self.d_h < 0:
-            new_height = self.world.height_map[node[0]][node[1]] - np.abs(self.d_h) * weight * self.water
+            new_height = world.height_map[node[0]][node[1]] - np.abs(self.d_h) * weight * self.water
             if new_height < 0.05:
-                self.world.height_map[node[0]][node[1]] = 0.05
+                world.height_map[node[0]][node[1]] = 0.05
             else:
-                self.world.height_map[node[0]][node[1]] = new_height
+                world.height_map[node[0]][node[1]] = new_height
 
-    def erode_radius(self, radius=3.0):
+    def erode_radius(self, world, radius=3.0):
         if not self.d_h < 0:
-            weightings_dict = WaterDroplet._get_nodes_and_weights_in_radius(self.world.height_map, self.pos, radius)
+            weightings_dict = WaterDroplet._get_nodes_and_weights_in_radius(world.height_map, self.pos, radius)
             for pos, weight in weightings_dict.items():
                 row, col = pos
-                new_height = self.world.height_map[row][col] - (self.d_h * weight * self.water)
-                if new_height < 0.05:
-                    self.world.height_map[row][col] = 0.05
-                else:
-                    self.world.height_map[row][col] = new_height
+                new_height = world.height_map[row][col] - (self.d_h * weight * self.water)
+                world.height_map[row][col] = new_height
 
     def evapourate(self):
         """Docstring"""
@@ -111,18 +104,18 @@ class WaterDroplet:
     def calc_gradient(self):
         pass
 
-    def _calc_height_and_grad(self):
+    def _calc_height_and_grad(self, world):
         """
         Given the world in which the drop exists and the current (x,y) position, this static method calculates the
         current height of the drop and the 2d gradient. This is required to determine the gravitational force on the
         drop when establishing its next position.
         """
-        world = self.world.height_map
+        heights = world.height_map
         nodes, offset = WaterDroplet._find_nodes_and_offsets(self.pos)
-        height_nw = world[nodes[0][0]][nodes[0][1]]
-        height_ne = world[nodes[1][0]][nodes[1][1]]
-        height_sw = world[nodes[3][0]][nodes[3][1]]
-        height_se = world[nodes[2][0]][nodes[2][1]]
+        height_nw = heights[nodes[0][0]][nodes[0][1]]
+        height_ne = heights[nodes[1][0]][nodes[1][1]]
+        height_sw = heights[nodes[3][0]][nodes[3][1]]
+        height_se = heights[nodes[2][0]][nodes[2][1]]
         # Calculate droplet's direction of flow with bilinear interpolation of height difference along the edges
         x_grad = ((height_ne - height_nw) * (1 - offset[1])) + ((height_se - height_sw) * offset[1])
         y_grad = ((height_sw - height_nw) * (1 - offset[0])) + ((height_se - height_ne) * offset[0])
@@ -224,9 +217,9 @@ class RainCloud:
             random_position = np.array([random.random() * self.world.lx, random.random() * self.world.ly])
             if strength:
                 random_strength = strength[0] + (random.random() * strength[1])
-                self.cloud.append(WaterDroplet(self.world, random_position, water=random_strength))
+                self.cloud.append(WaterDroplet(random_position, water=random_strength))
             else:
-                self.cloud.append(WaterDroplet(self.world, random_position))
+                self.cloud.append(WaterDroplet(random_position))
         return self.cloud
 
     def print_droplets(self):
